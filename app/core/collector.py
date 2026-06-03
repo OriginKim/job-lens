@@ -1,90 +1,69 @@
 import time
-from typing import Any
 from datetime import datetime
+from typing import Any
 
 import httpx
 
 from app.config import settings
 
-WORKNET_LIST_URL = "https://www.work24.go.kr/cm/openApi/call/wk/callWkOccupationInfoSrch.do"
-WORKNET_DETAIL_URL = "https://www.work24.go.kr/cm/openApi/call/wk/callWkJobDetailInfo.do"
-PAGE_SIZE = 100
-REQUEST_DELAY = 0.3
+SARAMIN_API_URL = "https://oapi.saramin.co.kr/job-search"
+PAGE_SIZE = 110
+REQUEST_DELAY = 0.5
 
 JOB_TYPE_KEYWORDS: dict[str, list[str]] = {
-    "backend": ["백엔드", "서버개발", "Java", "Spring"],
-    "qa": ["QA", "품질보증", "테스트엔지니어", "소프트웨어검증"],
+    "backend": ["백엔드", "서버개발", "Java개발자", "Spring"],
+    "qa": ["QA엔지니어", "품질보증", "테스트엔지니어", "소프트웨어테스트"],
     "ai_verification": ["AI검증", "AI신뢰성", "ML엔지니어", "AI QA"],
 }
 
-CAREER_TYPE_MAP: dict[str, str] = {
-    "0": "any",
-    "1": "entry",
-    "2": "experienced",
-}
 
-
-def _fetch_list_page(keyword: str, page: int) -> dict[str, Any]:
+def _fetch_page(keyword: str, start: int) -> dict[str, Any]:
     params = {
-        "authKey": settings.worknet_api_key,
-        "callTp": "L",
-        "returnType": "JSON",
-        "startPage": page,
-        "display": PAGE_SIZE,
-        "keyword": keyword,
+        "access-key": settings.saramin_api_key,
+        "keywords": keyword,
+        "start": start,
+        "count": PAGE_SIZE,
+        "fields": "posting-date,keywords,position,company",
     }
-    response = httpx.get(WORKNET_LIST_URL, params=params, timeout=30)
+    response = httpx.get(SARAMIN_API_URL, params=params, timeout=30)
     response.raise_for_status()
     return response.json()
 
 
-def _fetch_detail(wanted_no: str) -> dict[str, Any]:
-    params = {
-        "authKey": settings.worknet_api_key,
-        "callTp": "D",
-        "returnType": "JSON",
-        "wantedNo": wanted_no,
-    }
-    response = httpx.get(WORKNET_DETAIL_URL, params=params, timeout=30)
-    response.raise_for_status()
-    return response.json()
+def _parse_career_type(exp_code: int) -> str:
+    if exp_code == 1:
+        return "entry"
+    if exp_code >= 2:
+        return "experienced"
+    return "any"
 
 
 def _parse_date(date_str: str) -> datetime | None:
-    for fmt in ("%Y%m%d", "%Y-%m-%d"):
-        try:
-            return datetime.strptime(date_str.strip(), fmt)
-        except (ValueError, AttributeError):
-            continue
-    return None
+    if not date_str:
+        return None
+    try:
+        return datetime.fromisoformat(date_str[:19])
+    except (ValueError, TypeError):
+        return None
 
 
-def _extract_raw_skills(detail: dict[str, Any]) -> list[str]:
-    skill_fields = [
-        detail.get("preferentialTreat", ""),
-        detail.get("qualification", ""),
-        detail.get("jobCont", ""),
-    ]
-    combined = " ".join(f for f in skill_fields if f)
+def _parse_job(item: dict[str, Any], job_type: str) -> dict[str, Any]:
+    position = item.get("position", {})
+    exp_code = int(position.get("experience-level", {}).get("code", 0))
+    keywords_str = item.get("keywords", "")
+    raw_skills = [s.strip() for s in keywords_str.split(",") if s.strip()]
 
-    skill_keywords = [
-        "Java", "Python", "JavaScript", "TypeScript", "Go", "Kotlin", "C++", "C#", "Ruby",
-        "Spring Boot", "Spring", "Django", "FastAPI", "Flask", "Node.js", "React", "Vue",
-        "MySQL", "PostgreSQL", "MongoDB", "Redis", "Elasticsearch", "Oracle",
-        "Docker", "Kubernetes", "AWS", "GCP", "Azure", "Linux",
-        "Git", "GitHub", "GitLab", "Jira", "Confluence",
-        "Selenium", "Pytest", "JUnit", "TestNG", "Appium", "JMeter",
-        "TensorFlow", "PyTorch", "scikit-learn", "MLflow",
-        "SQL", "REST", "GraphQL", "gRPC", "Kafka", "RabbitMQ",
-        "Jenkins", "GitHub Actions", "CI/CD",
-    ]
-
-    found = []
-    combined_lower = combined.lower()
-    for kw in skill_keywords:
-        if kw.lower() in combined_lower:
-            found.append(kw)
-    return found
+    return {
+        "job_id": str(item.get("id", "")),
+        "company_name": item.get("company", {}).get("detail", {}).get("name", ""),
+        "title": position.get("title", ""),
+        "job_type": job_type,
+        "career_type": _parse_career_type(exp_code),
+        "region": position.get("location", {}).get("name", ""),
+        "skills_raw": ",".join(raw_skills),
+        "description": position.get("title", ""),
+        "posted_at": _parse_date(item.get("posting-date", "")),
+    }
 
 
 def fetch_jobs(job_type: str, limit: int) -> tuple[list[dict[str, Any]], int]:
@@ -94,48 +73,33 @@ def fetch_jobs(job_type: str, limit: int) -> tuple[list[dict[str, Any]], int]:
     per_keyword = max(1, limit // len(keywords))
 
     for keyword in keywords:
-        page = 1
+        start = 0
         keyword_count = 0
 
         while keyword_count < per_keyword:
             try:
-                data = _fetch_list_page(keyword, page)
-                items = data.get("HireInfo", {}).get("wanted", [])
+                data = _fetch_page(keyword, start)
+                jobs_wrapper = data.get("jobs", {})
+                total = int(jobs_wrapper.get("total", 0))
+                items = jobs_wrapper.get("jobs", {}).get("job", [])
+
                 if not items:
                     break
+                if isinstance(items, dict):
+                    items = [items]
 
                 for item in items:
-                    wanted_no = item.get("wantedNo", "")
-                    if not wanted_no or wanted_no in seen:
+                    job_id = str(item.get("id", ""))
+                    if not job_id or job_id in seen:
                         continue
-
-                    try:
-                        time.sleep(REQUEST_DELAY)
-                        detail_data = _fetch_detail(wanted_no)
-                        detail = detail_data.get("HireInfo", {}).get("wantedInfo", {})
-                    except Exception:
-                        failed += 1
-                        detail = {}
-
-                    raw_skills = _extract_raw_skills(detail)
-
-                    seen[wanted_no] = {
-                        "job_id": wanted_no,
-                        "company_name": item.get("company", "").strip(),
-                        "title": item.get("title", "").strip(),
-                        "job_type": job_type,
-                        "career_type": CAREER_TYPE_MAP.get(str(item.get("careerCd", "0")), "any"),
-                        "region": item.get("region", "").strip(),
-                        "skills_raw": ",".join(raw_skills),
-                        "description": detail.get("jobCont", item.get("title", "")),
-                        "posted_at": _parse_date(item.get("regDt", "")),
-                    }
+                    seen[job_id] = _parse_job(item, job_type)
                     keyword_count += 1
-
                     if keyword_count >= per_keyword:
                         break
 
-                page += 1
+                start += PAGE_SIZE
+                if start >= total:
+                    break
                 time.sleep(REQUEST_DELAY)
 
             except Exception:

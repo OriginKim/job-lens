@@ -1,7 +1,7 @@
 # Job-Lens
 
 채용공고 기반 IT 직무 분석 및 커리어 로드맵 추천 플랫폼.
-워크넷 공공 API로 백엔드·QA·AI검증 채용공고 500건을 수집·벡터화하여
+사람인 공식 API로 백엔드·QA·AI검증 채용공고 500건을 수집·벡터화하여
 자연어 질의응답과 기술 트렌드 분석을 제공한다.
 
 상세 요구사항: `docs/requirements.md`
@@ -16,7 +16,7 @@
 - **임베딩**: text-embedding-004
 - **벡터 DB**: ChromaDB (로컬)
 - **원본 저장**: SQLite (`data/jobs.db`)
-- **데이터 수집**: 워크넷 API (고용24)
+- **데이터 수집**: 사람인 API (oapi.saramin.co.kr)
 - **배포**: Railway
 
 ---
@@ -29,26 +29,26 @@ job-lens/
 ├── docs/
 │   └── requirements.md
 ├── app/
-│   ├── main.py              # FastAPI 진입점
+│   ├── main.py              
 │   ├── api/
-│   │   ├── query.py         # POST /query
-│   │   ├── stats.py         # GET /stats/*
-│   │   ├── roadmap.py       # GET /roadmap
-│   │   └── ingest.py        # POST /ingest
+│   │   ├── query.py         
+│   │   ├── stats.py         
+│   │   ├── roadmap.py       
+│   │   └── ingest.py        
 │   ├── core/
-│   │   ├── collector.py     # 워크넷 API 수집
-│   │   ├── normalizer.py    # 기술 스택 정규화
-│   │   ├── embedder.py      # 임베딩 생성
-│   │   ├── indexer.py       # ChromaDB 인덱싱
-│   │   └── rag.py           # RAG 파이프라인
+│   │   ├── collector.py     
+│   │   ├── normalizer.py    
+│   │   ├── embedder.py      
+│   │   ├── indexer.py       
+│   │   └── rag.py           
 │   ├── db/
-│   │   ├── database.py      # SQLite 연결
-│   │   └── models.py        # 테이블 정의
-│   └── config.py            # 환경변수
+│   │   ├── database.py      
+│   │   └── models.py        
+│   └── config.py            
 ├── data/
-│   └── jobs.db              # SQLite 원본 데이터
+│   └── jobs.db              
 ├── scripts/
-│   └── ingest.py            # 수동 수집 스크립트
+│   └── ingest.py            
 ├── tests/
 ├── .env.example
 ├── requirements.txt
@@ -60,32 +60,45 @@ job-lens/
 
 ## 타겟 직군
 
-| job_type 값 | 직군 | 워크넷 검색 키워드 |
+| job_type 값 | 직군 | 사람인 검색 키워드 |
 |---|---|---|
-| `backend` | 백엔드 | 백엔드, 서버, Java, Spring |
-| `qa` | QA / 테스트 | QA, 품질보증, 테스트, 소프트웨어 검증 |
-| `ai_verification` | AI 검증 | AI 검증, AI 신뢰성, ML 엔지니어 |
+| `backend` | 백엔드 | 백엔드, 서버개발, Java개발자, Spring |
+| `qa` | QA / 테스트 | QA엔지니어, 품질보증, 테스트엔지니어, 소프트웨어테스트 |
+| `ai_verification` | AI 검증 | AI검증, AI신뢰성, ML엔지니어 |
 
 ---
 
 ## Git 규칙
 
+### 작업 워크플로우
+
+모든 작업은 반드시 아래 순서를 따른다:
+
+```
+1. 이슈 생성     gh issue create --title "[feat] 기능명" --body "작업 내용"
+2. 브랜치 생성   git checkout -b feat/#{이슈번호}-기능명
+3. 작업 및 커밋  커밋 메시지 규칙 준수
+4. PR 생성       gh pr create --title "feat: 제목" --body "PR 템플릿 준수"
+5. Squash Merge  gh pr merge --squash
+6. 브랜치 삭제   git branch -d feat/#{이슈번호}-기능명
+```
+
 ### 브랜치 전략 (GitHub Flow)
 
 ```
-main                    # 항상 배포 가능한 상태 유지, 직접 커밋 금지
-feat/기능명             # 기능 개발
-fix/버그명              # 버그 수정
-chore/작업명            # 설정, 문서, 기타
+main                          # 항상 배포 가능한 상태 유지, 직접 커밋 금지
+feat/#{이슈번호}-기능명        # 기능 개발
+fix/#{이슈번호}-버그명         # 버그 수정
+chore/#{이슈번호}-작업명       # 설정, 문서, 기타
 ```
 
 브랜치 예시:
 ```
-feat/worknet-collector
-feat/chroma-indexer
-feat/rag-query-api
-fix/skill-normalizer
-chore/railway-deploy
+feat/#1-initial-setup
+feat/#2-worknet-collector
+feat/#3-chroma-indexer
+fix/#4-skill-normalizer
+chore/#5-railway-deploy
 ```
 
 ### 커밋 메시지 규칙 (Conventional Commits, 한글)
@@ -111,7 +124,7 @@ chore/railway-deploy
 
 커밋 예시:
 ```
-feat(collector): 워크넷 API 백엔드 직군 페이지네이션 수집 구현
+feat(collector): 사람인 API 백엔드 직군 페이지네이션 수집 구현
 fix(normalizer): Spring Boot 대소문자 변형 처리 누락 수정
 refactor(rag): ChromaDB 쿼리로 Top-K 검색 로직 단순화
 docs(readme): 로컬 실행 방법 추가
@@ -120,8 +133,10 @@ chore(railway): 배포 설정 추가
 
 ### 이슈 규칙
 
+제목 형식: `[타입] 작업 내용`
+
 ```
-[feat] 워크넷 API 수집 모듈 구현
+[feat] 사람인 API 수집 모듈 구현
 [fix] 기술 스택 정규화 누락 수정
 [docs] README 로컬 실행 방법 추가
 [chore] Railway 배포 설정
@@ -129,7 +144,7 @@ chore(railway): 배포 설정 추가
 
 ### PR 규칙
 
-```markdown
+```
 ## 요약
 무엇을 구현했는지 한 줄 요약
 
@@ -147,7 +162,7 @@ closes #이슈번호
 
 - `main` 직접 커밋 금지, PR을 통해서만 병합
 - PR 병합 전 반드시 `main` 최신화 후 충돌 해결
-- 병합 방식: Squash and Merge (커밋 이력 단순화)
+- 병합 방식: Squash and Merge
 
 ---
 
@@ -167,7 +182,7 @@ closes #이슈번호
 
 ```
 GEMINI_API_KEY=
-WORKNET_API_KEY=
+SARAMIN_API_KEY=
 CHROMA_PATH=./data/chroma
 DATABASE_URL=sqlite:///./data/jobs.db
 TOP_K=5
@@ -178,16 +193,9 @@ TOP_K=5
 ## 자주 쓰는 명령어
 
 ```bash
-# 로컬 실행
 uvicorn app.main:app --reload
-
-# 데이터 수집 및 인덱싱
 python scripts/ingest.py --limit 500
-
-# 테스트
 pytest tests/
-
-# 의존성 설치
 pip install -r requirements.txt
 ```
 
@@ -206,13 +214,13 @@ pip install -r requirements.txt
 
 ---
 
-## 핵심 설계 결정 (Claude Code 작업 시 참고)
+## 핵심 설계 결정
 
-**청크 전략**: 공고 단위 전체 텍스트 + 기술 스택 항목 분리 저장 (2-level)
-**Top-K**: 기본값 5, 환경변수로 조정 가능
-**기술 스택 정규화**: `normalizer.py`에서 alias 딕셔너리 기반으로 처리
-**중복 제거**: 공고 ID 기준 SQLite upsert
-**응답 출처**: 모든 RAG 답변에 참조 공고 회사명 포함
+- **청크 전략**: 공고 단위 전체 텍스트 + 기술 스택 항목 분리 저장 (2-level)
+- **Top-K**: 기본값 5, 환경변수로 조정 가능
+- **기술 스택 정규화**: `normalizer.py`에서 alias 딕셔너리 기반으로 처리
+- **중복 제거**: 공고 ID 기준 SQLite upsert
+- **응답 출처**: 모든 RAG 답변에 참조 공고 회사명 포함
 
 ---
 
