@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from app.api import query, stats, roadmap, ingest
 from app.db.database import init_db
 
@@ -22,7 +24,14 @@ app.include_router(stats.router)
 app.include_router(roadmap.router)
 app.include_router(ingest.router)
 
+app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
 
 @app.get("/health", tags=["health"])
 async def health_check() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/", include_in_schema=False)
+async def serve_ui() -> FileResponse:
+    return FileResponse("app/static/index.html")
