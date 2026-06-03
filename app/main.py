@@ -1,0 +1,28 @@
+from contextlib import asynccontextmanager
+from fastapi import FastAPI
+from app.api import query, stats, roadmap, ingest
+from app.db.database import init_db
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    init_db()
+    yield
+
+
+app = FastAPI(
+    title="Job-Lens",
+    description="채용공고 기반 IT 직무 분석 및 커리어 로드맵 추천 플랫폼",
+    version="0.2.0",
+    lifespan=lifespan,
+)
+
+app.include_router(query.router)
+app.include_router(stats.router)
+app.include_router(roadmap.router)
+app.include_router(ingest.router)
+
+
+@app.get("/health", tags=["health"])
+async def health_check() -> dict[str, str]:
+    return {"status": "ok"}
