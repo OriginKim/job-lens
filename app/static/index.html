@@ -3,725 +3,622 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Job-Lens — 채용공고 분석 플랫폼</title>
+  <title>Job-Lens — IT 직무 분석 플랫폼</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <style>
-    :root {
-      --bg: #0f1117;
-      --card: #1a1d27;
-      --border: #2d3142;
-      --accent: #6366f1;
-      --text: #e2e8f0;
-      --subtext: #94a3b8;
-      --success: #10b981;
-      --warning: #f59e0b;
-    }
+    * { box-sizing: border-box; }
+    body { font-family: 'Inter', sans-serif; }
 
-    *, *::before, *::after { box-sizing: border-box; }
-    html, body { height: 100%; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); }
-
-    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+    ::-webkit-scrollbar-thumb { background: #2d3142; border-radius: 9999px; }
 
     .tab-btn {
-      padding: 0.8rem 1.25rem;
-      background: none;
-      border: none;
+      color: #94a3b8;
       border-bottom: 2px solid transparent;
-      color: var(--subtext);
-      cursor: pointer;
+      padding: 10px 16px;
       font-size: 0.875rem;
-      font-family: 'Inter', sans-serif;
       font-weight: 500;
       transition: color 0.15s, border-color 0.15s;
-      white-space: nowrap;
-    }
-    .tab-btn:hover { color: var(--text); }
-    .tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
-
-    .radio-label {
-      display: flex;
-      align-items: center;
-      gap: 0.5rem;
       cursor: pointer;
-      font-size: 0.875rem;
-      color: var(--text);
-      padding: 0.3rem 0;
+      background: none;
+      border-left: none; border-right: none; border-top: none;
     }
-    .radio-label input[type="radio"] { accent-color: var(--accent); cursor: pointer; }
+    .tab-btn:hover { color: #e2e8f0; }
+    .tab-btn.active { color: #6366f1; border-bottom-color: #6366f1; }
 
-    .example-card {
-      width: 100%;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      padding: 1rem 1.1rem;
-      cursor: pointer;
-      text-align: left;
-      font-family: 'Inter', sans-serif;
-      transition: border-color 0.15s, background 0.15s;
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
     }
-    .example-card:hover { border-color: var(--accent); background: #1e2236; }
+    .fade-in { animation: fadeUp 0.18s ease; }
 
-    .msg-user {
-      display: flex;
-      justify-content: flex-end;
-      margin-bottom: 1rem;
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; }
+      40%            { opacity: 1; }
     }
-    .msg-user .bubble {
-      background: var(--accent);
-      color: #fff;
-      padding: 0.7rem 1rem;
-      border-radius: 1rem 1rem 0.25rem 1rem;
-      max-width: 70%;
-      font-size: 0.9rem;
-      line-height: 1.5;
-      word-break: break-word;
-    }
+    .dot { display: inline-block; width: 6px; height: 6px; border-radius: 9999px; background: #94a3b8; animation: blink 1.4s infinite; margin: 0 1px; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
 
-    .msg-assistant {
-      display: flex;
-      gap: 0.75rem;
-      margin-bottom: 1rem;
-      align-items: flex-start;
-    }
-    .msg-avatar {
-      width: 32px;
-      height: 32px;
-      border-radius: 50%;
-      background: var(--accent);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.7rem;
-      font-weight: 700;
-      flex-shrink: 0;
-      color: #fff;
-    }
-    .msg-assistant .bubble {
-      background: var(--card);
-      border: 1px solid var(--border);
-      padding: 0.75rem 1rem;
-      border-radius: 0.25rem 1rem 1rem 1rem;
-      max-width: 82%;
-      font-size: 0.9rem;
-      word-break: break-word;
-    }
+    /* markdown prose */
+    .prose h1, .prose h2, .prose h3 { color: #e2e8f0; font-weight: 600; margin: 0.8em 0 0.4em; }
+    .prose h1 { font-size: 1.15rem; }
+    .prose h2 { font-size: 1.05rem; }
+    .prose h3 { font-size: 0.95rem; }
+    .prose p  { color: #cbd5e1; margin: 0.45em 0; line-height: 1.65; font-size: 0.875rem; }
+    .prose ul, .prose ol { color: #cbd5e1; padding-left: 1.25rem; margin: 0.45em 0; }
+    .prose li { margin: 0.25em 0; line-height: 1.65; font-size: 0.875rem; }
+    .prose strong { color: #e2e8f0; font-weight: 600; }
+    .prose code { background: #2d3142; padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.8rem; color: #a5b4fc; }
+    .prose a { color: #6366f1; text-decoration: underline; }
 
-    .source-badge {
-      display: inline-flex;
-      align-items: center;
-      background: var(--border);
-      color: var(--subtext);
-      padding: 0.18rem 0.6rem;
-      border-radius: 9999px;
-      font-size: 0.73rem;
-      margin: 0.15rem;
-    }
-
-    .loading-dots { display: flex; gap: 5px; align-items: center; }
-    .loading-dots span {
-      width: 6px; height: 6px;
-      background: var(--subtext);
-      border-radius: 50%;
-      animation: blink 1.2s infinite;
-    }
-    .loading-dots span:nth-child(2) { animation-delay: 0.2s; }
-    .loading-dots span:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
-
-    .fade-in { animation: fadeIn 0.2s ease; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
-
-    .prose { line-height: 1.75; }
-    .prose h1 { font-size: 1.15rem; font-weight: 700; margin: 1rem 0 0.5rem; color: var(--text); }
-    .prose h2 { font-size: 1.0rem; font-weight: 600; margin: 0.9rem 0 0.4rem; color: var(--text); }
-    .prose h3 { font-size: 0.93rem; font-weight: 600; margin: 0.75rem 0 0.35rem; color: var(--text); }
-    .prose p { color: var(--subtext); margin-bottom: 0.5rem; }
-    .prose ul, .prose ol { color: var(--subtext); padding-left: 1.3rem; margin-bottom: 0.5rem; }
-    .prose li { margin-bottom: 0.2rem; }
-    .prose strong { color: var(--text); }
-    .prose code { background: var(--border); padding: 0.1rem 0.35rem; border-radius: 3px; font-size: 0.82em; font-family: 'Courier New', monospace; color: var(--text); }
-    .prose hr { border: none; border-top: 1px solid var(--border); margin: 0.75rem 0; }
-    .prose blockquote { border-left: 3px solid var(--accent); padding-left: 0.75rem; color: var(--subtext); margin: 0.5rem 0; }
-
-    .skill-badge {
-      display: inline-block;
-      padding: 0.25rem 0.65rem;
-      border-radius: 9999px;
-      font-size: 0.77rem;
-      font-weight: 500;
-      margin: 0.2rem 0.15rem;
-    }
-
-    .stage-card {
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      padding: 1.25rem;
-    }
-
-    .chat-input {
-      flex: 1;
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: 0.75rem;
-      padding: 0.7rem 1rem;
-      color: var(--text);
-      font-size: 0.9rem;
-      font-family: 'Inter', sans-serif;
-      outline: none;
-      resize: none;
-      transition: border-color 0.15s;
-      line-height: 1.5;
-      min-height: 44px;
-    }
-    .chat-input:focus { border-color: var(--accent); }
-    .chat-input::placeholder { color: var(--subtext); }
-    .chat-input:disabled { opacity: 0.55; cursor: not-allowed; }
-
-    .send-btn {
-      background: var(--accent);
-      border: none;
-      border-radius: 0.6rem;
-      color: #fff;
-      padding: 0.65rem 1.1rem;
-      font-size: 0.875rem;
-      font-family: 'Inter', sans-serif;
-      font-weight: 500;
-      cursor: pointer;
-      transition: opacity 0.15s;
-      flex-shrink: 0;
-      align-self: flex-end;
-    }
-    .send-btn:hover:not(:disabled) { opacity: 0.85; }
-    .send-btn:disabled { opacity: 0.45; cursor: not-allowed; }
-
-    .overlay {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0,0,0,0.55);
-      z-index: 30;
-    }
-    .overlay.show { display: block; }
-
-    @media (max-width: 768px) {
+    @media (max-width: 767px) {
       #sidebar {
-        position: fixed;
-        left: -240px;
-        top: 0;
-        bottom: 0;
-        z-index: 40;
+        position: fixed; top: 0; left: -240px; bottom: 0;
+        z-index: 50; width: 240px;
         transition: left 0.25s ease;
+        background: #0f1117;
       }
       #sidebar.open { left: 0; }
-      #menu-btn { display: flex !important; }
-      .header-badges { display: none !important; }
+      #overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 40; }
+      #overlay.visible { display: block; }
     }
   </style>
 </head>
-<body style="display: flex; flex-direction: column; height: 100vh; overflow: hidden;">
+<body class="bg-[#0f1117] text-[#e2e8f0] flex flex-col" style="height: 100dvh; overflow: hidden;">
 
-<div id="overlay" class="overlay" onclick="closeSidebar()"></div>
-
-<!-- Header -->
-<header style="background: var(--card); border-bottom: 1px solid var(--border); padding: 0.85rem 1.25rem; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; z-index: 10;">
-  <div style="display: flex; align-items: center; gap: 0.75rem;">
-    <button id="menu-btn" onclick="toggleSidebar()" style="display: none; align-items: center; justify-content: center; background: none; border: none; color: var(--text); cursor: pointer; padding: 0.25rem; line-height: 1;">
-      <svg width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-        <path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/>
-      </svg>
-    </button>
-    <span style="font-size: 1.15rem; font-weight: 700; letter-spacing: -0.01em;">🔍 Job-Lens</span>
-  </div>
-  <div class="header-badges" style="display: flex; gap: 0.5rem;">
-    <span style="background: #1e3a5f; color: #60a5fa; padding: 0.2rem 0.65rem; border-radius: 9999px; font-size: 0.73rem; font-weight: 500;">백엔드</span>
-    <span style="background: #064e3b; color: #34d399; padding: 0.2rem 0.65rem; border-radius: 9999px; font-size: 0.73rem; font-weight: 500;">QA</span>
-    <span style="background: #2e1065; color: #a78bfa; padding: 0.2rem 0.65rem; border-radius: 9999px; font-size: 0.73rem; font-weight: 500;">AI검증</span>
-  </div>
-</header>
-
-<!-- Body -->
-<div style="display: flex; flex: 1; overflow: hidden;">
-
-  <!-- Sidebar -->
-  <aside id="sidebar" style="width: 215px; min-width: 215px; background: var(--card); border-right: 1px solid var(--border); padding: 1.5rem 1rem; overflow-y: auto; flex-shrink: 0;">
-    <div style="margin-bottom: 2rem;">
-      <p style="font-size: 0.67rem; font-weight: 600; color: var(--subtext); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.8rem;">직군 필터</p>
-      <div style="display: flex; flex-direction: column;">
-        <label class="radio-label"><input type="radio" name="jobType" value="" checked onchange="onFilterChange()"> 전체</label>
-        <label class="radio-label"><input type="radio" name="jobType" value="backend" onchange="onFilterChange()"> 백엔드</label>
-        <label class="radio-label"><input type="radio" name="jobType" value="qa" onchange="onFilterChange()"> QA</label>
-        <label class="radio-label"><input type="radio" name="jobType" value="ai_verification" onchange="onFilterChange()"> AI검증</label>
+  <!-- Header -->
+  <header class="flex items-center justify-between px-4 h-12 border-b border-[#2d3142] shrink-0">
+    <div class="flex items-center gap-3">
+      <button id="menuBtn" class="md:hidden p-1 text-[#94a3b8] hover:text-[#e2e8f0] transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+      <div class="flex items-center gap-2">
+        <span class="text-[#6366f1] font-bold text-lg leading-none">◉</span>
+        <span class="font-bold text-[#e2e8f0] text-base tracking-tight">Job-Lens</span>
       </div>
     </div>
-    <div>
-      <p style="font-size: 0.67rem; font-weight: 600; color: var(--subtext); letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 0.8rem;">경력 필터</p>
-      <div style="display: flex; flex-direction: column;">
-        <label class="radio-label"><input type="radio" name="careerType" value="" checked onchange="onFilterChange()"> 전체</label>
-        <label class="radio-label"><input type="radio" name="careerType" value="entry" onchange="onFilterChange()"> 신입</label>
-        <label class="radio-label"><input type="radio" name="careerType" value="experienced" onchange="onFilterChange()"> 경력</label>
+    <div class="flex items-center gap-1.5">
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-[#1e3a5f]/80 text-[#60a5fa]">백엔드</span>
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-[#1a3a2a]/80 text-[#34d399]">QA</span>
+      <span class="px-2 py-0.5 rounded text-xs font-medium bg-[#2d1f4a]/80 text-[#c084fc]">AI검증</span>
+    </div>
+  </header>
+
+  <!-- Mobile overlay -->
+  <div id="overlay" onclick="closeSidebar()"></div>
+
+  <!-- Body -->
+  <div class="flex flex-1 overflow-hidden">
+
+    <!-- Sidebar -->
+    <aside id="sidebar" class="w-[220px] border-r border-[#2d3142] flex flex-col shrink-0 overflow-y-auto">
+      <div class="p-5 flex flex-col gap-7">
+
+        <div>
+          <p class="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest mb-3">직군</p>
+          <div id="jobTypeFilter" class="flex flex-col gap-1"></div>
+        </div>
+
+        <div>
+          <p class="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-widest mb-3">경력</p>
+          <div id="careerTypeFilter" class="flex flex-col gap-1"></div>
+        </div>
+
       </div>
-    </div>
-  </aside>
+    </aside>
 
-  <!-- Main -->
-  <main style="flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0;">
+    <!-- Content -->
+    <main class="flex-1 flex flex-col overflow-hidden">
 
-    <!-- Tab bar -->
-    <div style="background: var(--card); border-bottom: 1px solid var(--border); display: flex; flex-shrink: 0; padding: 0 0.5rem;">
-      <button class="tab-btn active" data-tab="chat" onclick="switchTab('chat')">채팅</button>
-      <button class="tab-btn" data-tab="skills" onclick="switchTab('skills')">기술스택</button>
-      <button class="tab-btn" data-tab="roadmap" onclick="switchTab('roadmap')">로드맵</button>
-    </div>
+      <!-- Tabs -->
+      <div class="flex items-end px-4 border-b border-[#2d3142] shrink-0 gap-1">
+        <button class="tab-btn active" data-tab="chat">채팅</button>
+        <button class="tab-btn" data-tab="skills">기술스택</button>
+        <button class="tab-btn" data-tab="roadmap">로드맵</button>
+      </div>
 
-    <!-- Chat Panel -->
-    <div id="panel-chat" style="flex: 1; display: flex; flex-direction: column; overflow: hidden;">
-      <div id="messages" style="flex: 1; overflow-y: auto; padding: 1.5rem 1.25rem;">
-        <div id="examples" style="max-width: 520px; margin: 1.5rem auto 0;">
-          <p style="text-align: center; color: var(--subtext); font-size: 0.83rem; margin-bottom: 1rem;">
-            500건의 채용공고 데이터를 기반으로 질문해보세요
-          </p>
-          <div style="display: flex; flex-direction: column; gap: 0.65rem;">
-            <button class="example-card" data-q="신입 백엔드 개발자가 뭐부터 공부해야 해?" onclick="sendExample(this.dataset.q)">
-              <p style="font-size: 0.72rem; color: #60a5fa; font-weight: 600; margin-bottom: 0.3rem;">💡 예시 질문</p>
-              <p style="color: var(--text); font-size: 0.875rem; line-height: 1.4;">신입 백엔드 개발자가 뭐부터 공부해야 해?</p>
-            </button>
-            <button class="example-card" data-q="QA 엔지니어가 가장 많이 요구하는 기술은?" onclick="sendExample(this.dataset.q)">
-              <p style="font-size: 0.72rem; color: #34d399; font-weight: 600; margin-bottom: 0.3rem;">💡 예시 질문</p>
-              <p style="color: var(--text); font-size: 0.875rem; line-height: 1.4;">QA 엔지니어가 가장 많이 요구하는 기술은?</p>
-            </button>
-            <button class="example-card" data-q="AI 검증 직군은 Python을 얼마나 요구해?" onclick="sendExample(this.dataset.q)">
-              <p style="font-size: 0.72rem; color: #a78bfa; font-weight: 600; margin-bottom: 0.3rem;">💡 예시 질문</p>
-              <p style="color: var(--text); font-size: 0.875rem; line-height: 1.4;">AI 검증 직군은 Python을 얼마나 요구해?</p>
-            </button>
+      <!-- Panels -->
+      <div class="flex-1 overflow-hidden relative">
+
+        <!-- Chat panel -->
+        <div id="panel-chat" class="absolute inset-0 flex flex-col">
+          <div id="chatMessages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
+            <div id="exampleCards" class="flex flex-col items-center justify-center h-full gap-3">
+              <p class="text-sm text-[#94a3b8] mb-1">채용공고 데이터 기반으로 질문해보세요</p>
+              <button class="example-q w-full max-w-md text-left px-4 py-3 rounded-xl bg-[#1a1d27] border border-[#2d3142] hover:border-[#6366f1]/40 transition-all text-sm text-[#94a3b8] hover:text-[#e2e8f0]"
+                data-q="신입 백엔드 개발자가 뭐부터 공부해야 해?">
+                <span class="text-[#6366f1] mr-2 font-bold">→</span>신입 백엔드 개발자가 뭐부터 공부해야 해?
+              </button>
+              <button class="example-q w-full max-w-md text-left px-4 py-3 rounded-xl bg-[#1a1d27] border border-[#2d3142] hover:border-[#10b981]/40 transition-all text-sm text-[#94a3b8] hover:text-[#e2e8f0]"
+                data-q="QA 엔지니어가 가장 많이 요구하는 기술은?">
+                <span class="text-[#10b981] mr-2 font-bold">→</span>QA 엔지니어가 가장 많이 요구하는 기술은?
+              </button>
+              <button class="example-q w-full max-w-md text-left px-4 py-3 rounded-xl bg-[#1a1d27] border border-[#2d3142] hover:border-[#a855f7]/40 transition-all text-sm text-[#94a3b8] hover:text-[#e2e8f0]"
+                data-q="AI 검증 직군은 Python을 얼마나 요구해?">
+                <span class="text-[#a855f7] mr-2 font-bold">→</span>AI 검증 직군은 Python을 얼마나 요구해?
+              </button>
+            </div>
+          </div>
+          <div class="shrink-0 p-3 border-t border-[#2d3142]">
+            <div class="flex gap-2 items-end max-w-3xl mx-auto">
+              <textarea id="chatInput" rows="1"
+                class="flex-1 bg-[#1a1d27] border border-[#2d3142] focus:border-[#6366f1]/50 rounded-xl px-4 py-2.5 text-sm text-[#e2e8f0] placeholder-[#94a3b8]/60 focus:outline-none resize-none transition-colors leading-relaxed"
+                placeholder="질문 입력 (Enter 전송 · Shift+Enter 줄바꿈)"></textarea>
+              <button id="sendBtn"
+                class="shrink-0 h-10 px-4 bg-[#6366f1] hover:bg-[#4f52d9] disabled:opacity-40 disabled:cursor-not-allowed rounded-xl text-sm font-medium transition-colors">
+                전송
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-      <div style="padding: 0.9rem 1.25rem; border-top: 1px solid var(--border); background: var(--bg); flex-shrink: 0;">
-        <div style="display: flex; gap: 0.65rem; align-items: flex-end; max-width: 860px; margin: 0 auto;">
-          <textarea id="chat-input" class="chat-input" rows="2"
-            placeholder="채용 데이터에 대해 질문해보세요... (Shift+Enter로 줄바꿈)"
-            onkeydown="onInputKeydown(event)"></textarea>
-          <button id="send-btn" class="send-btn" onclick="onSendClick()">전송</button>
-        </div>
-      </div>
-    </div>
 
-    <!-- Skills Panel -->
-    <div id="panel-skills" style="display: none; flex: 1; overflow-y: auto; padding: 1.5rem 1.25rem;">
-      <div id="skills-content" style="max-width: 860px; margin: 0 auto;">
-        <div style="display: flex; align-items: center; justify-content: center; height: 180px;">
-          <div class="loading-dots"><span></span><span></span><span></span></div>
+        <!-- Skills panel -->
+        <div id="panel-skills" class="absolute inset-0 overflow-y-auto p-4 hidden">
+          <div class="max-w-2xl mx-auto">
+            <div id="skillsHeader" class="flex items-center justify-between mb-4">
+              <h2 class="text-base font-semibold">기술 스택 분석</h2>
+              <span id="skillsMeta" class="text-xs text-[#94a3b8]"></span>
+            </div>
+            <div id="skillsLoading" class="hidden flex justify-center items-center h-48">
+              <div class="flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            </div>
+            <div id="skillsEmpty" class="hidden flex justify-center items-center h-48 text-sm text-[#94a3b8]">
+              데이터 없음 — /ingest 로 공고를 먼저 수집해주세요.
+            </div>
+            <div id="skillsChart-wrapper" class="bg-[#1a1d27] rounded-xl border border-[#2d3142] p-4">
+              <canvas id="skillsChart"></canvas>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-    <!-- Roadmap Panel -->
-    <div id="panel-roadmap" style="display: none; flex: 1; overflow-y: auto; padding: 1.5rem 1.25rem;">
-      <div id="roadmap-content" style="max-width: 860px; margin: 0 auto;">
-        <div style="text-align: center; padding: 4rem 1rem; color: var(--subtext);">
-          <p style="font-size: 2rem; margin-bottom: 1rem;">🗺️</p>
-          <p style="font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 0.5rem;">직군을 선택해주세요</p>
-          <p style="font-size: 0.83rem; line-height: 1.6;">사이드바에서 백엔드, QA, AI검증 중 하나를 선택하면<br>맞춤 커리어 로드맵을 제공합니다.</p>
+        <!-- Roadmap panel -->
+        <div id="panel-roadmap" class="absolute inset-0 overflow-y-auto p-4 hidden">
+          <div class="max-w-2xl mx-auto">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-base font-semibold">커리어 로드맵</h2>
+              <button id="aiRoadmapBtn"
+                class="hidden px-3 py-1.5 text-xs bg-[#1a1d27] border border-[#2d3142] hover:border-[#6366f1]/50 rounded-lg text-[#94a3b8] hover:text-[#e2e8f0] transition-all">
+                AI 로드맵 생성
+              </button>
+            </div>
+            <div id="roadmapLoading" class="hidden flex justify-center items-center h-48">
+              <div class="flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+            </div>
+            <div id="roadmapEmpty" class="hidden flex justify-center items-center h-48 text-sm text-[#94a3b8]">
+              데이터 없음 — /ingest 로 공고를 먼저 수집해주세요.
+            </div>
+            <div id="roadmapStages" class="flex flex-col gap-3 mb-5"></div>
+            <div id="aiRoadmapSection" class="hidden">
+              <div class="flex items-center gap-2 mb-3">
+                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#6366f1]/20 text-[#a5b4fc]">AI</span>
+                <span class="text-sm font-semibold text-[#e2e8f0]">AI 생성 로드맵</span>
+              </div>
+              <div id="aiRoadmapLoading" class="hidden p-4 rounded-xl bg-[#1a1d27] border border-[#2d3142] mb-3">
+                <div class="flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>
+              </div>
+              <div id="aiRoadmapText" class="prose p-4 rounded-xl bg-[#1a1d27] border border-[#2d3142]"></div>
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
 
-  </main>
-</div>
+      </div>
+    </main>
+  </div>
 
 <script>
-  // ── State ─────────────────────────────────────────────────────────────────
-  const API_BASE = window.location.protocol === 'file:' ? 'http://localhost:8000' : '';
-  let activeTab = 'chat';
-  let isLoading = false;
-  let messages = [];
-  let skillsChart = null;
+// ── State ─────────────────────────────────────────────────────────────────────
+const S = {
+  jobType: '',
+  careerType: '',
+  activeTab: 'chat',
+  chatBusy: false,
+  chartInst: null,
+};
 
-  const JOB_COLORS = { '': '#6366f1', backend: '#3b82f6', qa: '#10b981', ai_verification: '#8b5cf6' };
-  const JOB_LABELS = { '': '전체', backend: '백엔드', qa: 'QA', ai_verification: 'AI검증' };
-  const CAREER_LABELS = { '': '전체', entry: '신입', experienced: '경력' };
+// ── Constants ─────────────────────────────────────────────────────────────────
+const JOB_OPTS = [
+  { value: '',              label: '전체',   color: '#6366f1' },
+  { value: 'backend',       label: '백엔드', color: '#3b82f6' },
+  { value: 'qa',            label: 'QA',     color: '#10b981' },
+  { value: 'ai_verification', label: 'AI검증', color: '#a855f7' },
+];
+const CAREER_OPTS = [
+  { value: '',           label: '전체' },
+  { value: 'entry',      label: '신입' },
+  { value: 'experienced',label: '경력' },
+];
+const JOB_LABEL = Object.fromEntries(JOB_OPTS.map(o => [o.value, o.label]));
+const JOB_COLOR = Object.fromEntries(JOB_OPTS.map(o => [o.value, o.color]));
 
-  function getJobType() { return document.querySelector('input[name="jobType"]:checked')?.value || ''; }
-  function getCareerType() { return document.querySelector('input[name="careerType"]:checked')?.value || ''; }
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
 
-  // ── Tab ───────────────────────────────────────────────────────────────────
-  function switchTab(tab) {
-    activeTab = tab;
-
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-      btn.classList.toggle('active', btn.dataset.tab === tab);
-    });
-
-    ['chat', 'skills', 'roadmap'].forEach(t => {
-      const el = document.getElementById(`panel-${t}`);
-      el.style.display = 'none';
-    });
-
-    const panel = document.getElementById(`panel-${tab}`);
-    panel.style.display = tab === 'chat' ? 'flex' : 'block';
-    panel.classList.add('fade-in');
-    setTimeout(() => panel.classList.remove('fade-in'), 300);
-
-    if (tab === 'skills') loadSkills();
-    if (tab === 'roadmap') loadRoadmap();
+async function api(path, opts = {}) {
+  const r = await fetch(path, opts);
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: r.statusText }));
+    throw new Error(e.detail || r.statusText);
   }
+  return r.json();
+}
 
-  // ── Filter ────────────────────────────────────────────────────────────────
-  function onFilterChange() {
-    if (activeTab === 'skills') loadSkills();
-    if (activeTab === 'roadmap') loadRoadmap();
-  }
+function dots() {
+  return '<div class="flex gap-1"><span class="dot"></span><span class="dot"></span><span class="dot"></span></div>';
+}
 
-  // ── Mobile Sidebar ────────────────────────────────────────────────────────
-  function toggleSidebar() {
-    document.getElementById('sidebar').classList.toggle('open');
-    document.getElementById('overlay').classList.toggle('show');
-  }
-  function closeSidebar() {
-    document.getElementById('sidebar').classList.remove('open');
-    document.getElementById('overlay').classList.remove('show');
-  }
+// ── Sidebar / mobile ──────────────────────────────────────────────────────────
+document.getElementById('menuBtn').addEventListener('click', () => {
+  document.getElementById('sidebar').classList.add('open');
+  document.getElementById('overlay').classList.add('visible');
+});
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('overlay').classList.remove('visible');
+}
 
-  // ── Chat ──────────────────────────────────────────────────────────────────
-  function onInputKeydown(e) {
-    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); onSendClick(); }
-  }
+// ── Filter radios ─────────────────────────────────────────────────────────────
+function buildFilter(containerId, opts, stateKey, onChange) {
+  const container = document.getElementById(containerId);
+  opts.forEach(opt => {
+    const id = `${containerId}-${opt.value || 'all'}`;
+    const label = document.createElement('label');
+    label.htmlFor = id;
+    label.className = 'flex items-center gap-2.5 cursor-pointer py-0.5 group';
+    label.innerHTML = `
+      <input type="radio" id="${id}" name="${containerId}" value="${opt.value}" class="sr-only"${opt.value === '' ? ' checked' : ''}>
+      <span class="radio-wrap w-4 h-4 rounded-full border-2 border-[#2d3142] flex items-center justify-center transition-colors">
+        <span class="radio-dot w-2 h-2 rounded-full transition-opacity opacity-0" style="background:${opt.color || '#6366f1'}"></span>
+      </span>
+      <span class="radio-txt text-sm transition-colors ${opt.value === '' ? 'text-[#e2e8f0]' : 'text-[#94a3b8] group-hover:text-[#e2e8f0]'}">${opt.label}</span>`;
+    container.appendChild(label);
 
-  function onSendClick() {
-    const input = document.getElementById('chat-input');
-    const q = input.value.trim();
-    if (!q || isLoading) return;
-    input.value = '';
-    sendQuery(q);
-  }
+    const input = label.querySelector('input');
+    const dot   = label.querySelector('.radio-dot');
+    const wrap  = label.querySelector('.radio-wrap');
+    const txt   = label.querySelector('.radio-txt');
 
-  function sendExample(q) {
-    if (isLoading) return;
-    sendQuery(q);
-  }
-
-  async function sendQuery(question) {
-    if (isLoading) return;
-    isLoading = true;
-
-    const examples = document.getElementById('examples');
-    if (examples) examples.style.display = 'none';
-
-    appendUserMessage(question);
-
-    setInputDisabled(true);
-
-    const loadingId = 'loading-' + Date.now();
-    appendLoadingMessage(loadingId);
-
-    try {
-      const body = { question };
-      const jt = getJobType();
-      const ct = getCareerType();
-      if (jt) body.job_type = jt;
-      if (ct) body.career_type = ct;
-
-      const res = await fetch(`${API_BASE}/query`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.detail || `HTTP ${res.status}`);
-      }
-      const data = await res.json();
-      removeEl(loadingId);
-      appendAssistantMessage(data.answer, data.sources || []);
-    } catch (e) {
-      removeEl(loadingId);
-      appendAssistantMessage(`오류가 발생했습니다: ${e.message}`, []);
+    if (opt.value === '') {
+      dot.style.opacity = '1';
+      wrap.style.borderColor = opt.color || '#6366f1';
     }
 
-    setInputDisabled(false);
-    isLoading = false;
-  }
+    input.addEventListener('change', () => {
+      // reset all in group
+      container.querySelectorAll('label').forEach(l => {
+        l.querySelector('.radio-dot').style.opacity = '0';
+        l.querySelector('.radio-wrap').style.borderColor = '#2d3142';
+        l.querySelector('.radio-txt').classList.replace('text-[#e2e8f0]', 'text-[#94a3b8]');
+      });
+      dot.style.opacity = '1';
+      wrap.style.borderColor = opt.color || '#6366f1';
+      txt.classList.replace('text-[#94a3b8]', 'text-[#e2e8f0]');
+      S[stateKey] = opt.value;
+      closeSidebar();
+      onChange();
+    });
+  });
+}
 
-  function setInputDisabled(disabled) {
-    document.getElementById('chat-input').disabled = disabled;
-    document.getElementById('send-btn').disabled = disabled;
-  }
+function onFilterChange() {
+  if (S.activeTab === 'skills')  loadSkills();
+  if (S.activeTab === 'roadmap') loadRoadmap();
+}
 
-  function appendUserMessage(content) {
-    const div = document.createElement('div');
-    div.className = 'msg-user fade-in';
-    div.innerHTML = `<div class="bubble">${escHtml(content)}</div>`;
-    document.getElementById('messages').appendChild(div);
-    scrollBottom();
-  }
+buildFilter('jobTypeFilter',    JOB_OPTS,    'jobType',    onFilterChange);
+buildFilter('careerTypeFilter', CAREER_OPTS, 'careerType', onFilterChange);
 
-  function appendAssistantMessage(content, sources) {
-    const sourcesHtml = sources.length
-      ? `<div style="margin-top: 0.75rem; padding-top: 0.6rem; border-top: 1px solid var(--border);">
-           <span style="font-size: 0.71rem; color: var(--subtext); display: block; margin-bottom: 0.35rem;">참조 공고</span>
-           ${sources.map(s => `<span class="source-badge">${escHtml(s)}</span>`).join('')}
+// ── Tabs ──────────────────────────────────────────────────────────────────────
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+});
+
+function switchTab(tab) {
+  S.activeTab = tab;
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b.dataset.tab === tab));
+  document.querySelectorAll('[id^="panel-"]').forEach(p => {
+    const mine = p.id === `panel-${tab}`;
+    p.classList.toggle('hidden', !mine);
+    if (mine) { p.classList.add('fade-in'); setTimeout(() => p.classList.remove('fade-in'), 300); }
+  });
+  if (tab === 'skills')  loadSkills();
+  if (tab === 'roadmap') loadRoadmap();
+}
+
+// ── Chat ──────────────────────────────────────────────────────────────────────
+const chatInput = document.getElementById('chatInput');
+const sendBtn   = document.getElementById('sendBtn');
+const chatArea  = document.getElementById('chatMessages');
+
+document.querySelectorAll('.example-q').forEach(btn => {
+  btn.addEventListener('click', () => {
+    chatInput.value = btn.dataset.q;
+    sendMessage();
+  });
+});
+
+chatInput.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+chatInput.addEventListener('input', () => {
+  chatInput.style.height = 'auto';
+  chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + 'px';
+});
+sendBtn.addEventListener('click', sendMessage);
+
+function appendMsg(html) {
+  const wrap = document.createElement('div');
+  wrap.className = 'fade-in';
+  wrap.innerHTML = html;
+  chatArea.appendChild(wrap);
+  chatArea.scrollTop = chatArea.scrollHeight;
+  return wrap;
+}
+
+async function sendMessage() {
+  const q = chatInput.value.trim();
+  if (!q || S.chatBusy) return;
+
+  document.getElementById('exampleCards')?.remove();
+  S.chatBusy = true;
+  chatInput.disabled = true;
+  sendBtn.disabled    = true;
+  chatInput.value     = '';
+  chatInput.style.height = 'auto';
+
+  appendMsg(`
+    <div class="flex justify-end">
+      <div class="max-w-[82%] px-4 py-2.5 bg-[#6366f1]/20 border border-[#6366f1]/25 rounded-2xl rounded-tr-sm text-sm text-[#e2e8f0] leading-relaxed">
+        ${esc(q)}
+      </div>
+    </div>`);
+
+  const loadEl = appendMsg(`
+    <div class="flex justify-start">
+      <div class="px-4 py-3 bg-[#1a1d27] border border-[#2d3142] rounded-2xl rounded-tl-sm">
+        ${dots()}
+      </div>
+    </div>`);
+
+  try {
+    const body = { question: q };
+    if (S.jobType)    body.job_type    = S.jobType;
+    if (S.careerType) body.career_type = S.careerType;
+
+    const data = await api('/query', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    loadEl.remove();
+    const sourcesHtml = data.sources?.length
+      ? `<div class="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-[#2d3142]">
+           ${data.sources.map(s => `<span class="px-2 py-0.5 text-xs rounded-full bg-[#0f1117] border border-[#2d3142] text-[#94a3b8]">${esc(s)}</span>`).join('')}
          </div>`
       : '';
-
-    const div = document.createElement('div');
-    div.className = 'msg-assistant fade-in';
-    div.innerHTML = `
-      <div class="msg-avatar">AI</div>
-      <div class="bubble">
-        <div class="prose">${marked.parse(content)}</div>
-        ${sourcesHtml}
-      </div>`;
-    document.getElementById('messages').appendChild(div);
-    scrollBottom();
-  }
-
-  function appendLoadingMessage(id) {
-    const div = document.createElement('div');
-    div.id = id;
-    div.className = 'msg-assistant';
-    div.innerHTML = `
-      <div class="msg-avatar">AI</div>
-      <div class="bubble" style="padding: 0.75rem 1rem;">
-        <div class="loading-dots"><span></span><span></span><span></span></div>
-      </div>`;
-    document.getElementById('messages').appendChild(div);
-    scrollBottom();
-  }
-
-  function removeEl(id) { document.getElementById(id)?.remove(); }
-  function scrollBottom() {
-    const el = document.getElementById('messages');
-    el.scrollTop = el.scrollHeight;
-  }
-  function escHtml(str) {
-    const d = document.createElement('div');
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
-  // ── Skills ────────────────────────────────────────────────────────────────
-  async function loadSkills() {
-    const jt = getJobType();
-    const ct = getCareerType();
-
-    document.getElementById('skills-content').innerHTML = `
-      <div style="display: flex; align-items: center; justify-content: center; height: 180px;">
-        <div class="loading-dots"><span></span><span></span><span></span></div>
-      </div>`;
-
-    try {
-      const p = new URLSearchParams({ top_n: '10' });
-      if (jt) p.set('job_type', jt);
-      if (ct) p.set('career_type', ct);
-
-      const res = await fetch(`${API_BASE}/stats/skills?${p}`);
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-
-      if (!data.skills.length) {
-        document.getElementById('skills-content').innerHTML = `
-          <div style="text-align: center; padding: 3rem; color: var(--subtext);">
-            <p>데이터가 없습니다. 먼저 <code>/ingest</code> 로 데이터를 수집해주세요.</p>
-          </div>`;
-        return;
-      }
-
-      renderSkills(data, jt, ct);
-    } catch (e) {
-      document.getElementById('skills-content').innerHTML = `
-        <div style="text-align: center; padding: 3rem; color: var(--subtext);">
-          <p>데이터를 불러오지 못했습니다.</p>
-          <p style="font-size: 0.78rem; margin-top: 0.4rem; color: #ef4444;">${escHtml(e.message)}</p>
-        </div>`;
-    }
-  }
-
-  function renderSkills(data, jt, ct) {
-    const color = JOB_COLORS[jt] || JOB_COLORS[''];
-
-    document.getElementById('skills-content').innerHTML = `
-      <div class="fade-in">
-        <div style="margin-bottom: 1.25rem;">
-          <h2 style="font-size: 1.05rem; font-weight: 600;">기술 스택 Top ${data.skills.length}</h2>
-          <p style="font-size: 0.82rem; color: var(--subtext); margin-top: 0.25rem;">
-            ${JOB_LABELS[jt] || '전체'} · ${CAREER_LABELS[ct] || '전체'} · 공고 <strong style="color: var(--text);">${data.total_jobs}</strong>건 기준
-          </p>
+    appendMsg(`
+      <div class="flex justify-start">
+        <div class="max-w-[90%] px-4 py-3 bg-[#1a1d27] border border-[#2d3142] rounded-2xl rounded-tl-sm">
+          <div class="prose text-sm">${marked.parse(data.answer)}</div>
+          ${sourcesHtml}
         </div>
-        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.25rem; height: 380px; margin-bottom: 1.25rem;">
-          <canvas id="skills-chart"></canvas>
+      </div>`);
+  } catch (err) {
+    loadEl.remove();
+    appendMsg(`
+      <div class="flex justify-start">
+        <div class="max-w-[90%] px-4 py-3 bg-[#1a1d27] border border-[#2d3142] rounded-2xl rounded-tl-sm text-sm text-red-400">
+          오류: ${esc(err.message)}
         </div>
-        <div style="display: flex; flex-direction: column; gap: 0.45rem;">
-          ${data.skills.map((s, i) => `
-            <div style="display: flex; align-items: center; gap: 0.75rem; background: var(--card); border: 1px solid var(--border); border-radius: 0.5rem; padding: 0.6rem 0.9rem;">
-              <span style="font-size: 0.78rem; color: var(--subtext); width: 1.5rem; text-align: right; flex-shrink: 0;">${i + 1}</span>
-              <span style="font-size: 0.875rem; font-weight: 500; flex: 1;">${escHtml(s.skill)}</span>
-              <span style="font-size: 0.78rem; color: var(--subtext);">${s.count}건</span>
-              <span style="font-size: 0.875rem; font-weight: 700; color: ${color}; width: 3.5rem; text-align: right;">${Math.round(s.ratio * 100)}%</span>
-            </div>
-          `).join('')}
-        </div>
-      </div>`;
-
-    if (skillsChart) { skillsChart.destroy(); skillsChart = null; }
-    const ctx = document.getElementById('skills-chart').getContext('2d');
-    skillsChart = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: data.skills.map(s => s.skill),
-        datasets: [{
-          data: data.skills.map(s => Math.round(s.ratio * 100)),
-          backgroundColor: color + 'bb',
-          borderColor: color,
-          borderWidth: 1,
-          borderRadius: 4,
-        }],
-      },
-      options: {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            callbacks: {
-              label: ctx => ` ${ctx.parsed.x}%  (${data.skills[ctx.dataIndex].count}건)`,
-            },
-          },
-        },
-        scales: {
-          x: {
-            max: 100,
-            ticks: { color: '#94a3b8', callback: v => v + '%' },
-            grid: { color: '#2d314255' },
-          },
-          y: {
-            ticks: { color: '#e2e8f0', font: { size: 12 } },
-            grid: { display: false },
-          },
-        },
-      },
-    });
+      </div>`);
   }
 
-  // ── Roadmap ───────────────────────────────────────────────────────────────
-  async function loadRoadmap() {
-    const jt = getJobType();
-    const ct = getCareerType();
+  S.chatBusy = false;
+  chatInput.disabled = false;
+  sendBtn.disabled    = false;
+  chatInput.focus();
+}
 
-    if (!jt) {
-      document.getElementById('roadmap-content').innerHTML = `
-        <div style="text-align: center; padding: 4rem 1rem; color: var(--subtext);">
-          <p style="font-size: 2rem; margin-bottom: 1rem;">🗺️</p>
-          <p style="font-size: 0.95rem; font-weight: 500; color: var(--text); margin-bottom: 0.5rem;">직군을 선택해주세요</p>
-          <p style="font-size: 0.83rem; line-height: 1.6;">사이드바에서 백엔드, QA, AI검증 중 하나를 선택하면<br>맞춤 커리어 로드맵을 제공합니다.</p>
-        </div>`;
+// ── Skills ────────────────────────────────────────────────────────────────────
+let skillsLoaded = false;
+
+async function loadSkills() {
+  const loading = document.getElementById('skillsLoading');
+  const empty   = document.getElementById('skillsEmpty');
+  const wrapper = document.getElementById('skillsChart-wrapper');
+  const meta    = document.getElementById('skillsMeta');
+
+  loading.classList.remove('hidden'); loading.style.display = 'flex';
+  empty.classList.add('hidden');
+  wrapper.style.opacity = '0.4';
+
+  const p = new URLSearchParams({ top_n: 10 });
+  if (S.jobType)    p.set('job_type',    S.jobType);
+  if (S.careerType) p.set('career_type', S.careerType);
+
+  try {
+    const data = await api(`/stats/skills?${p}`);
+    loading.classList.add('hidden'); loading.style.display = '';
+    wrapper.style.opacity = '1';
+
+    if (!data.skills?.length) {
+      empty.classList.remove('hidden'); empty.style.display = 'flex';
       return;
     }
 
-    document.getElementById('roadmap-content').innerHTML = `
-      <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; height: 200px; gap: 0.75rem;">
-        <div class="loading-dots"><span></span><span></span><span></span></div>
-        <p style="font-size: 0.8rem; color: var(--subtext);">로드맵 생성 중… (15~30초 소요)</p>
-      </div>`;
+    meta.textContent = `${JOB_LABEL[S.jobType] || '전체'}${S.careerType ? ' · ' + (S.careerType === 'entry' ? '신입' : '경력') : ''} · ${data.total_jobs}건`;
+    renderChart(data.skills);
+    skillsLoaded = true;
+  } catch (err) {
+    loading.classList.add('hidden'); loading.style.display = '';
+    wrapper.style.opacity = '1';
+    empty.textContent = `오류: ${err.message}`;
+    empty.classList.remove('hidden'); empty.style.display = 'flex';
+  }
+}
 
-    try {
-      const p = new URLSearchParams({ job_type: jt });
-      if (ct) p.set('career_type', ct);
+function renderChart(skills) {
+  const color   = JOB_COLOR[S.jobType] || '#6366f1';
+  const canvas  = document.getElementById('skillsChart');
+  const wrapper = document.getElementById('skillsChart-wrapper');
+  const h       = Math.max(280, skills.length * 38);
+  wrapper.style.height = (h + 32) + 'px';
+  canvas.style.height  = h + 'px';
 
-      const [statsRes, roadmapRes] = await Promise.all([
-        fetch(`${API_BASE}/stats/skills?${p}&top_n=20`),
-        fetch(`${API_BASE}/roadmap?${p}`),
-      ]);
+  if (S.chartInst) { S.chartInst.destroy(); S.chartInst = null; }
 
-      if (!statsRes.ok || !roadmapRes.ok) throw new Error('API 오류가 발생했습니다.');
-      const statsData = await statsRes.json();
-      const roadmapData = await roadmapRes.json();
+  S.chartInst = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: skills.map(s => s.skill),
+      datasets: [{
+        data: skills.map(s => Math.round(s.ratio * 100)),
+        backgroundColor: color + 'bb',
+        borderColor: color,
+        borderWidth: 1,
+        borderRadius: 4,
+        borderSkipped: false,
+      }],
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.parsed.x}%` } },
+      },
+      scales: {
+        x: {
+          grid: { color: '#2d3142' },
+          ticks: { color: '#94a3b8', font: { size: 11 }, callback: v => v + '%' },
+          max: 100,
+        },
+        y: {
+          grid: { display: false },
+          ticks: { color: '#e2e8f0', font: { size: 12 } },
+        },
+      },
+    },
+  });
+}
 
-      renderRoadmap(statsData, roadmapData, jt, ct);
-    } catch (e) {
-      document.getElementById('roadmap-content').innerHTML = `
-        <div style="text-align: center; padding: 3rem; color: var(--subtext);">
-          <p>로드맵을 불러오지 못했습니다.</p>
-          <p style="font-size: 0.78rem; margin-top: 0.4rem; color: #ef4444;">${escHtml(e.message)}</p>
-        </div>`;
-    }
+// ── Roadmap ───────────────────────────────────────────────────────────────────
+async function loadRoadmap() {
+  const loading = document.getElementById('roadmapLoading');
+  const empty   = document.getElementById('roadmapEmpty');
+  const stages  = document.getElementById('roadmapStages');
+  const aiBtn   = document.getElementById('aiRoadmapBtn');
+  const aiSec   = document.getElementById('aiRoadmapSection');
+
+  loading.classList.remove('hidden'); loading.style.display = 'flex';
+  empty.classList.add('hidden');
+  stages.innerHTML = '';
+  aiSec.classList.add('hidden');
+  aiBtn.classList.toggle('hidden', !S.jobType);
+  if (S.jobType) {
+    aiBtn.textContent = 'AI 로드맵 생성';
+    aiBtn.disabled = false;
+    aiBtn.onclick = generateAiRoadmap;
   }
 
-  function renderRoadmap(statsData, roadmapData, jt, ct) {
-    const color = JOB_COLORS[jt] || JOB_COLORS[''];
-    const skills = statsData.skills || [];
+  const p = new URLSearchParams({ top_n: 20 });
+  if (S.jobType)    p.set('job_type',    S.jobType);
+  if (S.careerType) p.set('career_type', S.careerType);
 
-    const stage1 = skills.filter(s => s.ratio >= 0.8);
-    const stage2 = skills.filter(s => s.ratio >= 0.5 && s.ratio < 0.8);
-    const stage3 = skills.filter(s => s.ratio < 0.5);
+  try {
+    const data = await api(`/stats/skills?${p}`);
+    loading.classList.add('hidden'); loading.style.display = '';
 
-    function badges(list, textColor, bgColor) {
-      if (!list.length) return `<p style="font-size: 0.8rem; color: var(--subtext);">해당 기술 없음</p>`;
-      return list.map(s => `
-        <span class="skill-badge" style="background: ${bgColor}; color: ${textColor};">
-          ${escHtml(s.skill)}
-          <span style="opacity: 0.7; font-size: 0.68em; margin-left: 2px;">${Math.round(s.ratio * 100)}%</span>
-        </span>`).join('');
+    if (!data.skills?.length) {
+      empty.classList.remove('hidden'); empty.style.display = 'flex';
+      return;
     }
 
-    document.getElementById('roadmap-content').innerHTML = `
-      <div class="fade-in">
-        <div style="margin-bottom: 1.5rem;">
-          <h2 style="font-size: 1.05rem; font-weight: 600;">${JOB_LABELS[jt]} 커리어 로드맵</h2>
-          <p style="font-size: 0.82rem; color: var(--subtext); margin-top: 0.25rem;">
-            ${CAREER_LABELS[ct] || '전체'} · 공고 <strong style="color: var(--text);">${statsData.total_jobs}</strong>건 기준
-          </p>
-        </div>
-
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem; margin-bottom: 2rem;">
-          <div class="stage-card" style="border-top: 3px solid #ef4444;">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
-              <span style="background: #7f1d1d; color: #fca5a5; font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 9999px;">1단계</span>
-              <span style="font-size: 0.875rem; font-weight: 600;">필수 기초</span>
-            </div>
-            <p style="font-size: 0.73rem; color: var(--subtext); margin-bottom: 0.7rem;">공고 80% 이상 요구</p>
-            <div>${badges(stage1, '#fca5a5', '#7f1d1d55')}</div>
-          </div>
-
-          <div class="stage-card" style="border-top: 3px solid var(--warning);">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
-              <span style="background: #78350f; color: #fcd34d; font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 9999px;">2단계</span>
-              <span style="font-size: 0.875rem; font-weight: 600;">핵심 기술</span>
-            </div>
-            <p style="font-size: 0.73rem; color: var(--subtext); margin-bottom: 0.7rem;">공고 50~80% 요구</p>
-            <div>${badges(stage2, '#fcd34d', '#78350f55')}</div>
-          </div>
-
-          <div class="stage-card" style="border-top: 3px solid var(--success);">
-            <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.6rem;">
-              <span style="background: #064e3b; color: #6ee7b7; font-size: 0.7rem; font-weight: 600; padding: 0.15rem 0.55rem; border-radius: 9999px;">3단계</span>
-              <span style="font-size: 0.875rem; font-weight: 600;">우대 기술</span>
-            </div>
-            <p style="font-size: 0.73rem; color: var(--subtext); margin-bottom: 0.7rem;">50% 미만 · 차별화 포인트</p>
-            <div>${badges(stage3, '#6ee7b7', '#064e3b55')}</div>
-          </div>
-        </div>
-
-        <div style="background: var(--card); border: 1px solid var(--border); border-radius: 0.75rem; padding: 1.5rem;">
-          <p style="font-size: 0.78rem; font-weight: 600; color: var(--subtext); margin-bottom: 1rem; display: flex; align-items: center; gap: 0.4rem;">
-            <span style="color: ${color}; font-size: 1em;">●</span> AI 추천 학습 순서
-          </p>
-          <div class="prose">${marked.parse(roadmapData.roadmap_text || '')}</div>
-        </div>
-      </div>`;
+    renderStages(data.skills);
+  } catch (err) {
+    loading.classList.add('hidden'); loading.style.display = '';
+    empty.textContent = `오류: ${err.message}`;
+    empty.classList.remove('hidden'); empty.style.display = 'flex';
   }
+}
 
-  // ── Init ──────────────────────────────────────────────────────────────────
-  marked.setOptions({ breaks: true, gfm: true });
+function renderStages(skills) {
+  const tiers = [
+    { label: '1단계 · 필수 기초',  desc: '공고 50% 이상 요구',        color: '#10b981', bg: '#10b98112', border: '#10b98135', test: s => s.ratio >= 0.5  },
+    { label: '2단계 · 핵심 기술',  desc: '공고 25~50% 요구',          color: '#f59e0b', bg: '#f59e0b12', border: '#f59e0b35', test: s => s.ratio >= 0.25 && s.ratio < 0.5 },
+    { label: '3단계 · 우대 기술',  desc: '25% 미만 · 차별화 포인트',  color: '#6366f1', bg: '#6366f112', border: '#6366f135', test: s => s.ratio < 0.25  },
+  ];
+
+  const stages = document.getElementById('roadmapStages');
+  tiers.forEach(tier => {
+    const items = skills.filter(tier.test);
+    const div = document.createElement('div');
+    div.className = 'rounded-xl p-4 fade-in';
+    div.style.cssText = `background:${tier.bg}; border:1px solid ${tier.border};`;
+    div.innerHTML = `
+      <div class="flex items-center justify-between mb-3">
+        <div class="flex items-center gap-2">
+          <span class="text-sm font-semibold" style="color:${tier.color}">${tier.label}</span>
+          <span class="text-xs text-[#94a3b8]">${tier.desc}</span>
+        </div>
+        <span class="text-xs text-[#94a3b8]">${items.length}개</span>
+      </div>
+      ${items.length
+        ? `<div class="flex flex-wrap gap-1.5">
+            ${items.map(sk => `
+              <span class="px-2.5 py-1 rounded-lg text-xs font-medium" style="background:${tier.color}18; color:${tier.color}; border:1px solid ${tier.color}30">
+                ${esc(sk.skill)} <span style="opacity:0.6">${Math.round(sk.ratio * 100)}%</span>
+              </span>`).join('')}
+          </div>`
+        : `<p class="text-xs text-[#94a3b8]">해당 없음</p>`}`;
+    stages.appendChild(div);
+  });
+}
+
+async function generateAiRoadmap() {
+  if (!S.jobType) return;
+  const btn     = document.getElementById('aiRoadmapBtn');
+  const sec     = document.getElementById('aiRoadmapSection');
+  const loadEl  = document.getElementById('aiRoadmapLoading');
+  const textEl  = document.getElementById('aiRoadmapText');
+
+  btn.disabled = true;
+  btn.textContent = '생성 중...';
+  sec.classList.remove('hidden');
+  loadEl.classList.remove('hidden');
+  textEl.innerHTML = '';
+
+  const p = new URLSearchParams({ job_type: S.jobType });
+  if (S.careerType) p.set('career_type', S.careerType);
+
+  try {
+    const data = await api(`/roadmap?${p}`);
+    loadEl.classList.add('hidden');
+    textEl.innerHTML = marked.parse(data.roadmap_text);
+    btn.textContent = '다시 생성';
+  } catch (err) {
+    loadEl.classList.add('hidden');
+    textEl.innerHTML = `<p class="text-sm text-red-400">오류: ${esc(err.message)}</p>`;
+    btn.textContent = 'AI 로드맵 생성';
+  }
+  btn.disabled = false;
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+switchTab('chat');
 </script>
 </body>
 </html>
