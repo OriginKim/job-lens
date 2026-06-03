@@ -68,6 +68,89 @@ job-lens/
 
 ---
 
+## Git 규칙
+
+### 브랜치 전략 (GitHub Flow)
+
+```
+main                    # 항상 배포 가능한 상태 유지, 직접 커밋 금지
+feat/기능명             # 기능 개발
+fix/버그명              # 버그 수정
+chore/작업명            # 설정, 문서, 기타
+```
+
+브랜치 예시:
+```
+feat/worknet-collector
+feat/chroma-indexer
+feat/rag-query-api
+fix/skill-normalizer
+chore/railway-deploy
+```
+
+### 커밋 메시지 규칙 (Conventional Commits, 한글)
+
+형식:
+```
+타입(scope): 제목
+```
+
+타입 종류:
+- `feat`: 새로운 기능 추가
+- `fix`: 버그 수정
+- `refactor`: 기능 변경 없는 코드 개선
+- `docs`: 문서 수정
+- `test`: 테스트 추가/수정
+- `chore`: 빌드, 설정 변경
+
+규칙:
+- 제목 40자 이내
+- 마침표 없음
+- 명사형으로 끝내기 (`~구현`, `~수정`, `~추가`, `~개선`)
+- scope는 모듈명 영문 유지
+
+커밋 예시:
+```
+feat(collector): 워크넷 API 백엔드 직군 페이지네이션 수집 구현
+fix(normalizer): Spring Boot 대소문자 변형 처리 누락 수정
+refactor(rag): ChromaDB 쿼리로 Top-K 검색 로직 단순화
+docs(readme): 로컬 실행 방법 추가
+chore(railway): 배포 설정 추가
+```
+
+### 이슈 규칙
+
+```
+[feat] 워크넷 API 수집 모듈 구현
+[fix] 기술 스택 정규화 누락 수정
+[docs] README 로컬 실행 방법 추가
+[chore] Railway 배포 설정
+```
+
+### PR 규칙
+
+```markdown
+## 요약
+무엇을 구현했는지 한 줄 요약
+
+## 변경 사항
+- 변경된 파일/모듈 목록
+
+## 테스트
+- 어떻게 검증했는지
+
+## 관련 이슈
+closes #이슈번호
+```
+
+### 병합 규칙
+
+- `main` 직접 커밋 금지, PR을 통해서만 병합
+- PR 병합 전 반드시 `main` 최신화 후 충돌 해결
+- 병합 방식: Squash and Merge (커밋 이력 단순화)
+
+---
+
 ## 코딩 컨벤션
 
 - 함수·변수명: snake_case
