@@ -12,8 +12,8 @@
 
 - **언어**: Python 3.11
 - **프레임워크**: FastAPI
-- **LLM**: Gemini 2.0 Flash (`gemini-2.0-flash`)
-- **임베딩**: text-embedding-004
+- **LLM**: Gemini 2.5 Flash (`gemini-2.5-flash`)
+- **임베딩**: gemini-embedding-001
 - **벡터 DB**: ChromaDB (로컬)
 - **원본 저장**: SQLite (`data/jobs.db`)
 - **데이터 수집**: 사람인 API (oapi.saramin.co.kr)

@@ -1,7 +1,8 @@
 fastapi>=0.115.0
 uvicorn[standard]>=0.30.0
 google-genai>=1.0.0
-chromadb>=0.5.23
+chromadb==0.4.24
+numpy>=1.24.0,<2.0.0
 sqlalchemy>=2.0.0
 pydantic-settings>=2.5.0
 python-dotenv>=1.0.1

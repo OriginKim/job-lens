@@ -1,9 +1,10 @@
+from typing import Optional
 from google import genai
 from app.config import settings
 
-_client: genai.Client | None = None
-EMBED_MODEL = "text-embedding-004"
-BATCH_SIZE = 100
+_client: Optional[genai.Client] = None
+EMBED_MODEL = "gemini-embedding-001"
+BATCH_SIZE = 20
 
 
 def _get_client() -> genai.Client:
