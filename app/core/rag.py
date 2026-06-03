@@ -6,7 +6,7 @@ from app.config import settings
 from app.core.embedder import embed_text
 from app.core.indexer import search_jobs
 
-GENERATE_MODEL = "gemini-2.0-flash"
+GENERATE_MODEL = "gemini-2.5-flash"
 
 SYSTEM_PROMPT = """당신은 IT 채용 시장 분석 전문가입니다.
 아래 채용공고 데이터를 참고하여 질문에 정확하고 유용하게 답변하세요.
