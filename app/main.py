@@ -1,7 +1,13 @@
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
+from fastapi.responses import FileResponse
+
 from app.api import query, stats, roadmap, ingest
 from app.db.database import init_db
+
+_STATIC = Path(__file__).parent / "static"
 
 
 @asynccontextmanager
@@ -21,6 +27,11 @@ app.include_router(query.router)
 app.include_router(stats.router)
 app.include_router(roadmap.router)
 app.include_router(ingest.router)
+
+
+@app.get("/", include_in_schema=False)
+async def serve_frontend() -> FileResponse:
+    return FileResponse(_STATIC / "index.html")
 
 
 @app.get("/health", tags=["health"])
