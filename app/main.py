@@ -3,6 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from app.api import query, stats, roadmap, ingest
 from app.db.database import init_db
@@ -27,6 +28,8 @@ app.include_router(query.router)
 app.include_router(stats.router)
 app.include_router(roadmap.router)
 app.include_router(ingest.router)
+
+app.mount("/static", StaticFiles(directory=str(_STATIC)), name="static")
 
 
 @app.get("/", include_in_schema=False)
